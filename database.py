@@ -26,9 +26,24 @@ class Database:
             logger.error(f"Error connecting to the database: {str(e)}")
             raise
 
+    def ensure_connection(self):
+        """Ensure database connection is active"""
+        try:
+            # Try a simple query to test connection
+            if self.connection and not self.connection.closed:
+                cur = self.connection.cursor()
+                cur.execute('SELECT 1')
+                cur.close()
+            else:
+                self.connect()
+        except (psycopg2.OperationalError, psycopg2.InterfaceError):
+            logger.warning("Database connection lost, reconnecting...")
+            self.connect()
+
     def execute_query(self, query, params=None):
         """Execute a query and return results"""
         try:
+            self.ensure_connection()
             with self.connection.cursor(cursor_factory=DictCursor) as cursor:
                 cursor.execute(query, params)
                 self.connection.commit()
@@ -44,5 +59,6 @@ class Database:
 
     def close(self):
         """Close the database connection"""
-        if self.connection:
+        if self.connection and not self.connection.closed:
             self.connection.close()
+            logger.info("Database connection closed")
