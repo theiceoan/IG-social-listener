@@ -4,6 +4,16 @@ from data_handler import InstagramDataHandler
 from analytics import InstagramAnalytics
 from visualization import DashboardVisualizer
 from datetime import datetime
+import logging
+import sys
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    stream=sys.stdout
+)
+logger = logging.getLogger(__name__)
 
 try:
     # Page config
@@ -12,22 +22,27 @@ try:
         page_icon="🍽️",
         layout="wide"
     )
+    logger.info("Page configuration set successfully")
 
     # Initialize components with error handling
     @st.cache_resource
     def initialize_components():
         try:
+            logger.info("Initializing application components")
             data_handler = InstagramDataHandler()
             analytics = InstagramAnalytics(data_handler)
             visualizer = DashboardVisualizer()
+            logger.info("Components initialized successfully")
             return data_handler, analytics, visualizer
         except Exception as e:
+            logger.error(f"Failed to initialize components: {str(e)}", exc_info=True)
             st.error(f"Failed to initialize components: {str(e)}")
             return None, None, None
 
     data_handler, analytics, visualizer = initialize_components()
 
     if not all([data_handler, analytics, visualizer]):
+        logger.error("Failed to initialize one or more components")
         st.error("Failed to initialize the application. Please refresh the page.")
         st.stop()
 
@@ -56,6 +71,7 @@ try:
                 data_handler.add_restaurant(new_restaurant)
                 st.sidebar.success(f"Added {new_restaurant}")
             except Exception as e:
+                logger.error(f"Failed to add restaurant: {str(e)}", exc_info=True)
                 st.sidebar.error(f"Failed to add restaurant: {str(e)}")
 
     # Show current restaurants
@@ -75,6 +91,7 @@ try:
             data_handler.refresh_data()
             st.success("Data refreshed successfully!")
         except Exception as e:
+            logger.error(f"Failed to refresh data: {str(e)}", exc_info=True)
             st.error(f"Failed to refresh data: {str(e)}")
 
     # Export Data Button
@@ -96,6 +113,7 @@ try:
                 else:
                     st.sidebar.warning("No data available to export")
             except Exception as e:
+                logger.error(f"Failed to export data: {str(e)}", exc_info=True)
                 st.sidebar.error(f"Failed to export data: {str(e)}")
 
     try:
@@ -167,7 +185,9 @@ try:
             st.info("👈 Start by adding restaurants in the sidebar")
 
     except Exception as e:
+        logger.error(f"An error occurred while rendering the dashboard: {str(e)}", exc_info=True)
         st.error(f"An error occurred while rendering the dashboard: {str(e)}")
 
 except Exception as e:
+    logger.error(f"Critical error: {str(e)}", exc_info=True)
     st.error(f"Critical error: {str(e)}")
