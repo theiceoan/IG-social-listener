@@ -34,12 +34,42 @@ try:
     # Title and description
     st.title("🍽️ Restaurant Instagram Analytics Dashboard")
     st.markdown("""
-    This dashboard tracks Instagram engagement and hashtag trends for selected Black-owned restaurants.
-    Data is refreshed daily to provide the latest insights on social media performance.
+    This dashboard tracks Instagram engagement and hashtag trends for restaurants.
+    Add Instagram handles to analyze their social media performance.
     """)
 
-    # Sidebar for filters and controls
+    # Sidebar for restaurant management and controls
     st.sidebar.title("Dashboard Controls")
+
+    # Restaurant Input Section
+    st.sidebar.header("Add Restaurants")
+    new_restaurant = st.sidebar.text_input(
+        "Enter Instagram handle (e.g., @restaurantname)",
+        key="new_restaurant"
+    )
+
+    if st.sidebar.button("Add Restaurant"):
+        if new_restaurant:
+            if not new_restaurant.startswith('@'):
+                new_restaurant = '@' + new_restaurant
+            try:
+                data_handler.add_restaurant(new_restaurant)
+                st.sidebar.success(f"Added {new_restaurant}")
+            except Exception as e:
+                st.sidebar.error(f"Failed to add restaurant: {str(e)}")
+
+    # Show current restaurants
+    current_restaurants = data_handler.get_tracked_restaurants()
+    if current_restaurants:
+        st.sidebar.header("Tracked Restaurants")
+        for restaurant in current_restaurants:
+            col1, col2 = st.sidebar.columns([3, 1])
+            col1.write(restaurant)
+            if col2.button("Remove", key=f"remove_{restaurant}"):
+                data_handler.remove_restaurant(restaurant)
+                st.rerun()
+
+    # Refresh Data Button
     if st.sidebar.button("Refresh Data"):
         try:
             data_handler.refresh_data()
@@ -48,68 +78,72 @@ try:
             st.error(f"Failed to refresh data: {str(e)}")
 
     try:
-        # Top restaurants by engagement
-        st.header("📈 Top Performing Restaurants")
-        col1, col2 = st.columns(2)
+        # Only show analytics if there are restaurants being tracked
+        if current_restaurants:
+            # Top restaurants by engagement
+            st.header("📈 Top Performing Restaurants")
+            col1, col2 = st.columns(2)
 
-        with col1:
-            top_restaurants = analytics.get_top_restaurants()
-            if not top_restaurants.empty:
-                st.plotly_chart(
-                    visualizer.create_engagement_bar_chart(top_restaurants),
-                    use_container_width=True
-                )
-            else:
-                st.info("No engagement data available")
-
-        with col2:
-            trending_restaurants = analytics.get_trending_restaurants()
-            if not trending_restaurants.empty:
-                st.plotly_chart(
-                    visualizer.create_trend_line_chart(trending_restaurants),
-                    use_container_width=True
-                )
-            else:
-                st.info("No trending data available")
-
-        # Hashtag analysis
-        st.header("🏷️ Hashtag Analysis")
-        top_hashtags = analytics.get_top_hashtags()
-        if not top_hashtags.empty:
-            st.plotly_chart(
-                visualizer.create_hashtag_bubble_chart(top_hashtags),
-                use_container_width=True
-            )
-        else:
-            st.info("No hashtag data available")
-
-        # Restaurant detailed analysis
-        st.header("🔍 Restaurant Detail Analysis")
-        restaurants = data_handler.data['restaurant'].unique()
-        if len(restaurants) > 0:
-            selected_restaurant = st.selectbox(
-                "Select a restaurant to analyze:",
-                restaurants
-            )
-
-            if selected_restaurant:
-                summary = analytics.get_restaurant_summary(selected_restaurant)
-                if summary:
+            with col1:
+                top_restaurants = analytics.get_top_restaurants()
+                if not top_restaurants.empty:
                     st.plotly_chart(
-                        visualizer.create_restaurant_summary_cards(summary),
+                        visualizer.create_engagement_bar_chart(top_restaurants),
                         use_container_width=True
                     )
-
-                    st.subheader("Top Hashtags for " + selected_restaurant)
-                    st.write(summary['top_hashtags'])
                 else:
-                    st.warning("No data available for selected restaurant")
-        else:
-            st.info("No restaurant data available")
+                    st.info("No engagement data available")
 
-        # Footer with last update time
-        st.markdown("---")
-        st.markdown(f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            with col2:
+                trending_restaurants = analytics.get_trending_restaurants()
+                if not trending_restaurants.empty:
+                    st.plotly_chart(
+                        visualizer.create_trend_line_chart(trending_restaurants),
+                        use_container_width=True
+                    )
+                else:
+                    st.info("No trending data available")
+
+            # Hashtag analysis
+            st.header("🏷️ Hashtag Analysis")
+            top_hashtags = analytics.get_top_hashtags()
+            if not top_hashtags.empty:
+                st.plotly_chart(
+                    visualizer.create_hashtag_bubble_chart(top_hashtags),
+                    use_container_width=True
+                )
+            else:
+                st.info("No hashtag data available")
+
+            # Restaurant detailed analysis
+            st.header("🔍 Restaurant Detail Analysis")
+            restaurants = data_handler.get_tracked_restaurants()
+            if len(restaurants) > 0:
+                selected_restaurant = st.selectbox(
+                    "Select a restaurant to analyze:",
+                    restaurants
+                )
+
+                if selected_restaurant:
+                    summary = analytics.get_restaurant_summary(selected_restaurant)
+                    if summary:
+                        st.plotly_chart(
+                            visualizer.create_restaurant_summary_cards(summary),
+                            use_container_width=True
+                        )
+
+                        st.subheader("Top Hashtags for " + selected_restaurant)
+                        st.write(summary['top_hashtags'])
+                    else:
+                        st.warning("No data available for selected restaurant")
+            else:
+                st.info("No restaurant data available")
+
+            # Footer with last update time
+            st.markdown("---")
+            st.markdown(f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        else:
+            st.info("👈 Start by adding restaurants in the sidebar")
 
     except Exception as e:
         st.error(f"An error occurred while rendering the dashboard: {str(e)}")

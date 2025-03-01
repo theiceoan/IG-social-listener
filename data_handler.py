@@ -9,16 +9,40 @@ logger = logging.getLogger(__name__)
 
 class InstagramDataHandler:
     def __init__(self):
-        """Initialize with empty data and immediately load data"""
+        """Initialize with empty data and tracked restaurants list"""
         logger.info("Initializing InstagramDataHandler")
         self.data = pd.DataFrame()
+        self.tracked_restaurants = set()
+
+    def add_restaurant(self, restaurant_handle):
+        """Add a restaurant to track"""
+        if not restaurant_handle.startswith('@'):
+            restaurant_handle = '@' + restaurant_handle
+
+        logger.info(f"Adding restaurant: {restaurant_handle}")
+        self.tracked_restaurants.add(restaurant_handle)
         self.refresh_data()
+
+    def remove_restaurant(self, restaurant_handle):
+        """Remove a restaurant from tracking"""
+        logger.info(f"Removing restaurant: {restaurant_handle}")
+        self.tracked_restaurants.discard(restaurant_handle)
+        self.refresh_data()
+
+    def get_tracked_restaurants(self):
+        """Get list of currently tracked restaurants"""
+        return sorted(list(self.tracked_restaurants))
 
     def refresh_data(self):
         """Fetch fresh data with error handling"""
         try:
             logger.info("Attempting to fetch fresh data")
-            new_data = get_restaurant_data()
+            if not self.tracked_restaurants:
+                logger.info("No restaurants to track")
+                self.data = pd.DataFrame()
+                return
+
+            new_data = get_restaurant_data(list(self.tracked_restaurants))
 
             if new_data is None:
                 logger.error("get_restaurant_data returned None")
@@ -53,7 +77,7 @@ class InstagramDataHandler:
 
             engagement_data = []
 
-            for restaurant in self.data['restaurant'].unique():
+            for restaurant in self.tracked_restaurants:
                 restaurant_posts = self.data[self.data['restaurant'] == restaurant]
 
                 if len(restaurant_posts) == 0:
@@ -120,7 +144,7 @@ class InstagramDataHandler:
 
             trends = []
 
-            for restaurant in self.data['restaurant'].unique():
+            for restaurant in self.tracked_restaurants:
                 recent_engagement = recent_data[recent_data['restaurant'] == restaurant]
                 old_engagement = old_data[old_data['restaurant'] == restaurant]
 
