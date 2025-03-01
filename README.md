@@ -14,36 +14,71 @@ A Streamlit-based dashboard for tracking and analyzing Instagram engagement metr
 ## Prerequisites
 
 - Python 3.11 or higher
-- PostgreSQL database
+- PostgreSQL database (local installation)
 - Required Python packages (automatically installed)
 
 ## Installation
 
 1. Clone the repository to your local machine or Replit workspace
 
-2. Install the required Python packages:
-```bash
-pip install streamlit pandas plotly psycopg2-binary
-```
+2. Install PostgreSQL locally if not already installed:
+   ```bash
+   # For Ubuntu/Debian
+   sudo apt-get install postgresql postgresql-contrib
 
-3. Set up PostgreSQL database environment variables:
-```
-DATABASE_URL=postgresql://user:password@host:port/dbname
-PGUSER=your_username
-PGPASSWORD=your_password
-PGHOST=your_host
-PGPORT=your_port
-PGDATABASE=your_database
-```
+   # For macOS using Homebrew
+   brew install postgresql
+   ```
+
+3. Start PostgreSQL service:
+   ```bash
+   # For Ubuntu/Debian
+   sudo service postgresql start
+
+   # For macOS
+   brew services start postgresql
+   ```
+
+4. Create a local database and user:
+   ```sql
+   sudo -u postgres psql
+   CREATE DATABASE instagram_analytics;
+   CREATE USER instagram_user WITH PASSWORD 'your_password';
+   GRANT ALL PRIVILEGES ON DATABASE instagram_analytics TO instagram_user;
+   ```
+
+5. Install the required Python packages:
+   ```bash
+   pip install streamlit pandas plotly psycopg2-binary
+   ```
+
+6. Set up local environment variables:
+   ```bash
+   export PGUSER=instagram_user
+   export PGPASSWORD=your_password
+   export PGHOST=localhost
+   export PGPORT=5432
+   export PGDATABASE=instagram_analytics
+   ```
+
+7. Initialize the database schema:
+   ```sql
+   psql -U instagram_user -d instagram_analytics
+   CREATE TABLE IF NOT EXISTS restaurants (
+       id SERIAL PRIMARY KEY,
+       handle VARCHAR(255) UNIQUE NOT NULL,
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+   );
+   ```
 
 ## Running the Application
 
 1. Start the Streamlit server:
-```bash
-streamlit run main.py
-```
+   ```bash
+   streamlit run main.py
+   ```
 
-2. The application will be available at `http://localhost:5000` (or your configured port)
+2. The application will be available at `http://localhost:5000`
 
 ## Usage Guide
 
