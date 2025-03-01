@@ -1,42 +1,52 @@
-import os
-import psycopg2
-from psycopg2.extras import DictCursor
+import sqlite3
 import logging
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 class Database:
     def __init__(self):
-        self.conn_params = {
-            'dbname': os.getenv('PGDATABASE', 'postgres'),
-            'user': os.getenv('PGUSER', 'postgres'),
-            'password': os.getenv('PGPASSWORD', 'postgres'),
-            'host': os.getenv('PGHOST', 'localhost'),
-            'port': os.getenv('PGPORT', '5432')
-        }
+        """Initialize SQLite database connection"""
+        self.db_path = Path('instagram_analytics.db')
         self.connection = None
         self.connect()
+        self.create_tables()
 
     def connect(self):
         """Establish database connection"""
         try:
-            self.connection = psycopg2.connect(**self.conn_params)
-            logger.info("Successfully connected to the database")
+            self.connection = sqlite3.connect(self.db_path)
+            self.connection.row_factory = sqlite3.Row
+            logger.info("Successfully connected to the SQLite database")
         except Exception as e:
             logger.error(f"Error connecting to the database: {str(e)}")
+            raise
+
+    def create_tables(self):
+        """Create necessary tables if they don't exist"""
+        try:
+            with self.connection:
+                self.connection.execute("""
+                    CREATE TABLE IF NOT EXISTS restaurants (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        handle TEXT UNIQUE NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+            logger.info("Database tables created successfully")
+        except Exception as e:
+            logger.error(f"Error creating tables: {str(e)}")
             raise
 
     def ensure_connection(self):
         """Ensure database connection is active"""
         try:
             # Try a simple query to test connection
-            if self.connection and not self.connection.closed:
-                cur = self.connection.cursor()
-                cur.execute('SELECT 1')
-                cur.close()
+            if self.connection:
+                self.connection.cursor().execute('SELECT 1')
             else:
                 self.connect()
-        except (psycopg2.OperationalError, psycopg2.InterfaceError):
+        except (sqlite3.OperationalError, sqlite3.ProgrammingError):
             logger.warning("Database connection lost, reconnecting...")
             self.connect()
 
@@ -44,21 +54,20 @@ class Database:
         """Execute a query and return results"""
         try:
             self.ensure_connection()
-            with self.connection.cursor(cursor_factory=DictCursor) as cursor:
-                cursor.execute(query, params)
-                self.connection.commit()
+            with self.connection:
+                cursor = self.connection.cursor()
+                cursor.execute(query, params or ())
                 try:
                     results = cursor.fetchall()
-                    return results
-                except psycopg2.ProgrammingError:
+                    return [dict(row) for row in results]
+                except sqlite3.OperationalError:
                     return None
         except Exception as e:
             logger.error(f"Error executing query: {str(e)}")
-            self.connection.rollback()
             raise
 
     def close(self):
         """Close the database connection"""
-        if self.connection and not self.connection.closed:
+        if self.connection:
             self.connection.close()
             logger.info("Database connection closed")

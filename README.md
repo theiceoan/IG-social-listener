@@ -9,66 +9,24 @@ A Streamlit-based dashboard for tracking and analyzing Instagram engagement metr
 - 🏷️ Hashtag trend analysis
 - 📱 Interactive visualization
 - 💾 Data export functionality
-- 🔄 Persistent storage with PostgreSQL
+- 🔄 Local SQLite database for data persistence
 
 ## Prerequisites
 
 - Python 3.11 or higher
-- PostgreSQL database (local installation)
 - Required Python packages (automatically installed)
 
 ## Installation
 
-1. Clone the repository to your local machine or Replit workspace
-
-2. Install PostgreSQL locally if not already installed:
+1. Clone the repository to your local machine:
    ```bash
-   # For Ubuntu/Debian
-   sudo apt-get install postgresql postgresql-contrib
-
-   # For macOS using Homebrew
-   brew install postgresql
+   git clone <repository-url>
+   cd restaurant-instagram-analytics
    ```
 
-3. Start PostgreSQL service:
+2. Install the required Python packages:
    ```bash
-   # For Ubuntu/Debian
-   sudo service postgresql start
-
-   # For macOS
-   brew services start postgresql
-   ```
-
-4. Create a local database and user:
-   ```sql
-   sudo -u postgres psql
-   CREATE DATABASE instagram_analytics;
-   CREATE USER instagram_user WITH PASSWORD 'your_password';
-   GRANT ALL PRIVILEGES ON DATABASE instagram_analytics TO instagram_user;
-   ```
-
-5. Install the required Python packages:
-   ```bash
-   pip install streamlit pandas plotly psycopg2-binary
-   ```
-
-6. Set up local environment variables:
-   ```bash
-   export PGUSER=instagram_user
-   export PGPASSWORD=your_password
-   export PGHOST=localhost
-   export PGPORT=5432
-   export PGDATABASE=instagram_analytics
-   ```
-
-7. Initialize the database schema:
-   ```sql
-   psql -U instagram_user -d instagram_analytics
-   CREATE TABLE IF NOT EXISTS restaurants (
-       id SERIAL PRIMARY KEY,
-       handle VARCHAR(255) UNIQUE NOT NULL,
-       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-   );
+   pip install streamlit pandas plotly
    ```
 
 ## Running the Application
@@ -102,20 +60,9 @@ A Streamlit-based dashboard for tracking and analyzing Instagram engagement metr
 - `analytics.py`: Analytics calculation logic
 - `data_handler.py`: Data management and database operations
 - `visualization.py`: Data visualization components
-- `database.py`: Database connection handling
+- `database.py`: SQLite database connection handling
 - `mock_data.py`: Sample data generation for testing
-
-## Database Schema
-
-The application uses a PostgreSQL database with the following table:
-
-```sql
-CREATE TABLE IF NOT EXISTS restaurants (
-    id SERIAL PRIMARY KEY,
-    handle VARCHAR(255) UNIQUE NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
+- `instagram_analytics.db`: Local SQLite database file
 
 ## Contributing
 
