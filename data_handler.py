@@ -37,7 +37,7 @@ class InstagramDataHandler:
         logger.info(f"Removing restaurant: {restaurant_handle}")
         try:
             self.db.execute_query(
-                "DELETE FROM restaurants WHERE handle = %s",
+                "DELETE FROM restaurants WHERE handle = ?",
                 (restaurant_handle,)
             )
             self.refresh_data()
