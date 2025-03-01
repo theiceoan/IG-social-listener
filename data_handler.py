@@ -24,7 +24,7 @@ class InstagramDataHandler:
         logger.info(f"Adding restaurant: {restaurant_handle}")
         try:
             self.db.execute_query(
-                "INSERT INTO restaurants (handle) VALUES (%s) ON CONFLICT (handle) DO NOTHING",
+                "INSERT OR IGNORE INTO restaurants (handle) VALUES (?)",
                 (restaurant_handle,)
             )
             self.refresh_data()
