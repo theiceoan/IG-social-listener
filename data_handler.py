@@ -75,6 +75,9 @@ class InstagramDataHandler:
                 logger.error("get_restaurant_data returned empty DataFrame")
                 raise ValueError("Empty DataFrame received from get_restaurant_data")
 
+            # Filter data to only include tracked restaurants
+            new_data = new_data[new_data['restaurant'].isin(restaurants)]
+
             # Verify datetime format
             if not pd.api.types.is_datetime64_any_dtype(new_data['post_date']):
                 logger.warning("Converting post_date to datetime")
@@ -85,7 +88,6 @@ class InstagramDataHandler:
 
         except Exception as e:
             logger.error(f"Error refreshing data: {str(e)}")
-            # Initialize with empty DataFrame if data loading fails
             self.data = pd.DataFrame(columns=['restaurant', 'followers', 'post_date', 
                                             'likes', 'comments', 'hashtags'])
             raise Exception(f"Failed to load data: {str(e)}")
@@ -154,12 +156,12 @@ class InstagramDataHandler:
         try:
             if self.data.empty:
                 logger.warning("No data available for engagement calculation")
-                return pd.DataFrame(columns=['restaurant', 'engagement_rate', 
-                                        'followers', 'total_posts'])
+                return pd.DataFrame(columns=['restaurant', 'engagement_rate'])
 
             engagement_data = []
+            tracked_restaurants = self.get_tracked_restaurants()
 
-            for restaurant in self.get_tracked_restaurants():
+            for restaurant in tracked_restaurants:
                 restaurant_posts = self.data[self.data['restaurant'] == restaurant]
 
                 if len(restaurant_posts) == 0:
@@ -179,9 +181,7 @@ class InstagramDataHandler:
 
                 engagement_data.append({
                     'restaurant': restaurant,
-                    'engagement_rate': avg_engagement,
-                    'followers': followers,
-                    'total_posts': len(restaurant_posts)
+                    'engagement_rate': avg_engagement
                 })
 
             return pd.DataFrame(engagement_data)
@@ -196,8 +196,12 @@ class InstagramDataHandler:
                 logger.warning("No data available for hashtag analysis")
                 return pd.Series(dtype=float)
 
+            # Filter data to only include tracked restaurants
+            tracked_restaurants = self.get_tracked_restaurants()
+            filtered_data = self.data[self.data['restaurant'].isin(tracked_restaurants)]
+
             all_hashtags = []
-            for hashtags in self.data['hashtags']:
+            for hashtags in filtered_data['hashtags']:
                 if pd.notna(hashtags):  # Check for NaN/None values
                     all_hashtags.extend(hashtags.split(','))
 
@@ -221,12 +225,16 @@ class InstagramDataHandler:
             now = datetime.now()
             two_weeks_ago = now - timedelta(days=14)
 
-            recent_data = self.data[self.data['post_date'] >= two_weeks_ago]
-            old_data = self.data[self.data['post_date'] < two_weeks_ago]
+            # Filter data to only include tracked restaurants
+            tracked_restaurants = self.get_tracked_restaurants()
+            filtered_data = self.data[self.data['restaurant'].isin(tracked_restaurants)]
+
+            recent_data = filtered_data[filtered_data['post_date'] >= two_weeks_ago]
+            old_data = filtered_data[filtered_data['post_date'] < two_weeks_ago]
 
             trends = []
 
-            for restaurant in self.get_tracked_restaurants():
+            for restaurant in tracked_restaurants:
                 recent_engagement = recent_data[recent_data['restaurant'] == restaurant]
                 old_engagement = old_data[old_data['restaurant'] == restaurant]
 
@@ -257,6 +265,11 @@ class InstagramDataHandler:
 
     def get_restaurant_summary(self, restaurant):
         """Get detailed summary for a specific restaurant"""
+        # Verify restaurant is being tracked
+        if restaurant not in self.get_tracked_restaurants():
+            logger.warning(f"Restaurant {restaurant} is not being tracked")
+            return None
+
         restaurant_data = self.data[
             self.data['restaurant'] == restaurant
         ]
