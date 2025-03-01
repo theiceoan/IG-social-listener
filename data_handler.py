@@ -106,32 +106,41 @@ class InstagramDataHandler:
                 # Get restaurant summary
                 summary = self.get_restaurant_summary(restaurant)
                 if not summary:
+                    logger.warning(f"No summary data available for {restaurant}")
                     continue
 
                 # Get engagement rate
-                engagement_row = engagement_data[
-                    engagement_data['restaurant'] == restaurant
-                ].iloc[0] if not engagement_data.empty else None
+                engagement_rate = 0
+                if not engagement_data.empty:
+                    restaurant_engagement = engagement_data[engagement_data['restaurant'] == restaurant]
+                    if not restaurant_engagement.empty:
+                        engagement_rate = restaurant_engagement.iloc[0]['engagement_rate']
 
                 # Get trending data
-                trending_row = trending_data[
-                    trending_data['restaurant'] == restaurant
-                ].iloc[0] if not trending_data.empty else None
+                growth_rate = 0
+                if not trending_data.empty:
+                    restaurant_trending = trending_data[trending_data['restaurant'] == restaurant]
+                    if not restaurant_trending.empty:
+                        growth_rate = restaurant_trending.iloc[0]['growth_rate']
 
                 # Combine metrics
                 restaurant_data = {
                     'Restaurant Handle': restaurant,
                     'Followers': summary['followers'],
                     'Total Posts': summary['total_posts'],
-                    'Average Likes': summary['avg_likes'],
-                    'Average Comments': summary['avg_comments'],
-                    'Engagement Rate (%)': engagement_row['engagement_rate'] if engagement_row is not None else 0,
-                    'Growth Rate (%)': trending_row['growth_rate'] if trending_row is not None else 0,
+                    'Average Likes': round(summary['avg_likes'], 2),
+                    'Average Comments': round(summary['avg_comments'], 2),
+                    'Engagement Rate (%)': round(engagement_rate, 2),
+                    'Growth Rate (%)': round(growth_rate, 2),
                     'Top Hashtags': ', '.join(summary['top_hashtags'].index.tolist()[:5]),
                     'Export Date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }
 
                 export_data.append(restaurant_data)
+
+            if not export_data:
+                logger.warning("No data available for export")
+                return pd.DataFrame()
 
             logger.info(f"Prepared export data for {len(export_data)} restaurants")
             return pd.DataFrame(export_data)
