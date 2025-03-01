@@ -1,0 +1,6 @@
+pandas
+logging
+streamlit
+random
+datetime
+plotly
