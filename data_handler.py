@@ -2,6 +2,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 from mock_data import get_restaurant_data
 import logging
+from database import Database
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -9,10 +10,11 @@ logger = logging.getLogger(__name__)
 
 class InstagramDataHandler:
     def __init__(self):
-        """Initialize with empty data and tracked restaurants list"""
+        """Initialize with database connection and empty data"""
         logger.info("Initializing InstagramDataHandler")
+        self.db = Database()
         self.data = pd.DataFrame()
-        self.tracked_restaurants = set()
+        self.refresh_data()
 
     def add_restaurant(self, restaurant_handle):
         """Add a restaurant to track"""
@@ -20,29 +22,50 @@ class InstagramDataHandler:
             restaurant_handle = '@' + restaurant_handle
 
         logger.info(f"Adding restaurant: {restaurant_handle}")
-        self.tracked_restaurants.add(restaurant_handle)
-        self.refresh_data()
+        try:
+            self.db.execute_query(
+                "INSERT INTO restaurants (handle) VALUES (%s) ON CONFLICT (handle) DO NOTHING",
+                (restaurant_handle,)
+            )
+            self.refresh_data()
+        except Exception as e:
+            logger.error(f"Error adding restaurant: {str(e)}")
+            raise Exception(f"Failed to add restaurant: {str(e)}")
 
     def remove_restaurant(self, restaurant_handle):
         """Remove a restaurant from tracking"""
         logger.info(f"Removing restaurant: {restaurant_handle}")
-        self.tracked_restaurants.discard(restaurant_handle)
-        self.refresh_data()
+        try:
+            self.db.execute_query(
+                "DELETE FROM restaurants WHERE handle = %s",
+                (restaurant_handle,)
+            )
+            self.refresh_data()
+        except Exception as e:
+            logger.error(f"Error removing restaurant: {str(e)}")
+            raise Exception(f"Failed to remove restaurant: {str(e)}")
 
     def get_tracked_restaurants(self):
         """Get list of currently tracked restaurants"""
-        return sorted(list(self.tracked_restaurants))
+        try:
+            results = self.db.execute_query("SELECT handle FROM restaurants ORDER BY handle")
+            return [row['handle'] for row in results] if results else []
+        except Exception as e:
+            logger.error(f"Error getting tracked restaurants: {str(e)}")
+            return []
 
     def refresh_data(self):
         """Fetch fresh data with error handling"""
         try:
             logger.info("Attempting to fetch fresh data")
-            if not self.tracked_restaurants:
+            restaurants = self.get_tracked_restaurants()
+
+            if not restaurants:
                 logger.info("No restaurants to track")
                 self.data = pd.DataFrame()
                 return
 
-            new_data = get_restaurant_data(list(self.tracked_restaurants))
+            new_data = get_restaurant_data(restaurants)
 
             if new_data is None:
                 logger.error("get_restaurant_data returned None")
@@ -77,7 +100,7 @@ class InstagramDataHandler:
 
             engagement_data = []
 
-            for restaurant in self.tracked_restaurants:
+            for restaurant in self.get_tracked_restaurants():
                 restaurant_posts = self.data[self.data['restaurant'] == restaurant]
 
                 if len(restaurant_posts) == 0:
@@ -144,7 +167,7 @@ class InstagramDataHandler:
 
             trends = []
 
-            for restaurant in self.tracked_restaurants:
+            for restaurant in self.get_tracked_restaurants():
                 recent_engagement = recent_data[recent_data['restaurant'] == restaurant]
                 old_engagement = old_data[old_data['restaurant'] == restaurant]
 
@@ -172,3 +195,8 @@ class InstagramDataHandler:
         except Exception as e:
             logger.error(f"Error calculating restaurant trends: {str(e)}")
             raise
+
+    def __del__(self):
+        """Clean up database connection"""
+        if hasattr(self, 'db'):
+            self.db.close()
