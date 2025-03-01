@@ -90,6 +90,56 @@ class InstagramDataHandler:
                                             'likes', 'comments', 'hashtags'])
             raise Exception(f"Failed to load data: {str(e)}")
 
+    def get_analytics_export_data(self):
+        """Compile all analytics data for export"""
+        try:
+            logger.info("Preparing analytics export data")
+
+            # Get basic metrics
+            engagement_data = self.calculate_engagement_rates()
+            trending_data = self.get_restaurant_trends()
+
+            # Prepare export dataframe
+            export_data = []
+
+            for restaurant in self.get_tracked_restaurants():
+                # Get restaurant summary
+                summary = self.get_restaurant_summary(restaurant)
+                if not summary:
+                    continue
+
+                # Get engagement rate
+                engagement_row = engagement_data[
+                    engagement_data['restaurant'] == restaurant
+                ].iloc[0] if not engagement_data.empty else None
+
+                # Get trending data
+                trending_row = trending_data[
+                    trending_data['restaurant'] == restaurant
+                ].iloc[0] if not trending_data.empty else None
+
+                # Combine metrics
+                restaurant_data = {
+                    'Restaurant Handle': restaurant,
+                    'Followers': summary['followers'],
+                    'Total Posts': summary['total_posts'],
+                    'Average Likes': summary['avg_likes'],
+                    'Average Comments': summary['avg_comments'],
+                    'Engagement Rate (%)': engagement_row['engagement_rate'] if engagement_row is not None else 0,
+                    'Growth Rate (%)': trending_row['growth_rate'] if trending_row is not None else 0,
+                    'Top Hashtags': ', '.join(summary['top_hashtags'].index.tolist()[:5]),
+                    'Export Date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                }
+
+                export_data.append(restaurant_data)
+
+            logger.info(f"Prepared export data for {len(export_data)} restaurants")
+            return pd.DataFrame(export_data)
+
+        except Exception as e:
+            logger.error(f"Error preparing export data: {str(e)}")
+            raise
+
     def calculate_engagement_rates(self):
         """Calculate engagement rates for each restaurant"""
         try:
@@ -195,6 +245,33 @@ class InstagramDataHandler:
         except Exception as e:
             logger.error(f"Error calculating restaurant trends: {str(e)}")
             raise
+
+    def get_restaurant_summary(self, restaurant):
+        """Get detailed summary for a specific restaurant"""
+        restaurant_data = self.data[
+            self.data['restaurant'] == restaurant
+        ]
+
+        if len(restaurant_data) == 0:
+            return None
+
+        hashtags = []
+        for h in restaurant_data['hashtags']:
+            hashtags.extend(h.split(','))
+
+        top_hashtags = pd.Series(hashtags).value_counts().head(5)
+
+        avg_likes = restaurant_data['likes'].mean()
+        avg_comments = restaurant_data['comments'].mean()
+        followers = restaurant_data['followers'].iloc[0]
+
+        return {
+            'avg_likes': avg_likes,
+            'avg_comments': avg_comments,
+            'followers': followers,
+            'top_hashtags': top_hashtags,
+            'total_posts': len(restaurant_data)
+        }
 
     def __del__(self):
         """Clean up database connection"""

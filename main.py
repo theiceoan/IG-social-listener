@@ -77,6 +77,27 @@ try:
         except Exception as e:
             st.error(f"Failed to refresh data: {str(e)}")
 
+    # Export Data Button
+    if current_restaurants:
+        st.sidebar.markdown("---")
+        st.sidebar.header("Export Data")
+        if st.sidebar.button("Export Analytics to CSV"):
+            try:
+                export_data = data_handler.get_analytics_export_data()
+                if not export_data.empty:
+                    csv = export_data.to_csv(index=False)
+                    st.sidebar.download_button(
+                        label="Download CSV",
+                        data=csv,
+                        file_name=f"restaurant_analytics_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv"
+                    )
+                    st.sidebar.success("Data ready for download!")
+                else:
+                    st.sidebar.warning("No data available to export")
+            except Exception as e:
+                st.sidebar.error(f"Failed to export data: {str(e)}")
+
     try:
         # Only show analytics if there are restaurants being tracked
         if current_restaurants:
