@@ -5,3 +5,5 @@ random
 datetime
 plotly
 numpy
+flask
+flask-cors

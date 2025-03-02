@@ -16,6 +16,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 try:
+    # Initialize session state if not exists
+    if 'data_initialized' not in st.session_state:
+        st.session_state.data_initialized = False
+
     # Page config
     st.set_page_config(
         page_title="Restaurant Instagram Analytics",
@@ -39,7 +43,13 @@ try:
             st.error(f"Failed to initialize components: {str(e)}")
             return None, None, None
 
-    data_handler, analytics, visualizer = initialize_components()
+    # Display loading message during initialization
+    if not st.session_state.data_initialized:
+        with st.spinner('Loading application components...'):
+            data_handler, analytics, visualizer = initialize_components()
+            st.session_state.data_initialized = True
+    else:
+        data_handler, analytics, visualizer = initialize_components()
 
     if not all([data_handler, analytics, visualizer]):
         logger.error("Failed to initialize one or more components")
@@ -88,7 +98,8 @@ try:
     # Refresh Data Button
     if st.sidebar.button("Refresh Data"):
         try:
-            data_handler.refresh_data()
+            with st.spinner('Refreshing data...'):
+                data_handler.refresh_data()
             st.success("Data refreshed successfully!")
         except Exception as e:
             logger.error(f"Failed to refresh data: {str(e)}", exc_info=True)
@@ -100,7 +111,8 @@ try:
         st.sidebar.header("Export Data")
         if st.sidebar.button("Export Analytics to CSV"):
             try:
-                export_data = data_handler.get_analytics_export_data()
+                with st.spinner('Preparing export data...'):
+                    export_data = data_handler.get_analytics_export_data()
                 if not export_data.empty:
                     csv = export_data.to_csv(index=False)
                     st.sidebar.download_button(
@@ -124,7 +136,8 @@ try:
             col1, col2 = st.columns(2)
 
             with col1:
-                top_restaurants = analytics.get_top_restaurants()
+                with st.spinner('Loading engagement data...'):
+                    top_restaurants = analytics.get_top_restaurants()
                 if not top_restaurants.empty:
                     st.plotly_chart(
                         visualizer.create_engagement_bar_chart(top_restaurants),
@@ -134,7 +147,8 @@ try:
                     st.info("No engagement data available")
 
             with col2:
-                trending_restaurants = analytics.get_trending_restaurants()
+                with st.spinner('Loading trend data...'):
+                    trending_restaurants = analytics.get_trending_restaurants()
                 if not trending_restaurants.empty:
                     st.plotly_chart(
                         visualizer.create_trend_line_chart(trending_restaurants),
@@ -145,7 +159,8 @@ try:
 
             # Hashtag analysis
             st.header("🏷️ Hashtag Analysis")
-            top_hashtags = analytics.get_top_hashtags()
+            with st.spinner('Loading hashtag data...'):
+                top_hashtags = analytics.get_top_hashtags()
             if not top_hashtags.empty:
                 st.plotly_chart(
                     visualizer.create_hashtag_bubble_chart(top_hashtags),
@@ -164,7 +179,8 @@ try:
                 )
 
                 if selected_restaurant:
-                    summary = analytics.get_restaurant_summary(selected_restaurant)
+                    with st.spinner('Loading restaurant details...'):
+                        summary = analytics.get_restaurant_summary(selected_restaurant)
                     if summary:
                         st.plotly_chart(
                             visualizer.create_restaurant_summary_cards(summary),
