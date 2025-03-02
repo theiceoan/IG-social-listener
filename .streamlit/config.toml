@@ -8,8 +8,4 @@ enableXsrfProtection = false
 [browser]
 serverAddress = "0.0.0.0"
 serverPort = 5000
-<<<<<<< HEAD
 gatherUsageStats = false
-=======
-gatherUsageStats = false
->>>>>>> parent of d8d5779 (config update)
