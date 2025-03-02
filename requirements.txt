@@ -5,3 +5,7 @@ random
 datetime
 plotly
 numpy
+numpy
+pandas
+plotly
+streamlit
