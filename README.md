@@ -1,6 +1,6 @@
 # Restaurant Instagram Analytics Dashboard 🍽️
 
-A Streamlit-based dashboard for tracking and analyzing Instagram engagement metrics for restaurants. Monitor performance, analyze hashtag trends, and access analytics data through REST API endpoints.
+A Streamlit-based dashboard for tracking and analyzing Instagram engagement metrics for restaurants. Monitor performance, analyze hashtag trends, and export analytics data.
 
 ## Features
 
@@ -8,8 +8,8 @@ A Streamlit-based dashboard for tracking and analyzing Instagram engagement metr
 - 📈 Real-time engagement analytics
 - 🏷️ Hashtag trend analysis
 - 📱 Interactive visualization
-- 🔄 RESTful API for data access
-- 💾 Local SQLite database for data persistence
+- 💾 Data export functionality
+- 🔄 Local SQLite database for data persistence
 
 ## Prerequisites
 
@@ -26,7 +26,7 @@ A Streamlit-based dashboard for tracking and analyzing Instagram engagement metr
 
 2. Install the required Python packages:
    ```bash
-   pip install streamlit pandas plotly flask flask-cors
+   pip install streamlit pandas plotly
    ```
 
 ## Running the Application
@@ -36,86 +36,7 @@ A Streamlit-based dashboard for tracking and analyzing Instagram engagement metr
    streamlit run main.py
    ```
 
-2. Start the Flask API server:
-   ```bash
-   python api.py
-   ```
-
-3. The Streamlit dashboard will be available at `http://localhost:5000`
-4. The API endpoints will be available at `http://localhost:5001`
-
-## API Documentation
-
-### Available Endpoints
-
-#### 1. Get All Analytics Data
-- **Endpoint:** `/api/analytics`
-- **Method:** GET
-- **Response:** Array of restaurant analytics data including engagement rates, follower counts, and growth metrics
-- **Example Response:**
-  ```json
-  [
-    {
-      "Restaurant Handle": "@restaurant",
-      "Followers": 10000,
-      "Total Posts": 50,
-      "Average Likes": 500,
-      "Average Comments": 25,
-      "Engagement Rate (%)": 5.25,
-      "Growth Rate (%)": 10.5,
-      "Top Hashtags": "#food, #restaurant, #foodie"
-    }
-  ]
-  ```
-
-#### 2. Get All Tracked Restaurants
-- **Endpoint:** `/api/restaurants`
-- **Method:** GET
-- **Response:** Array of restaurant handles
-- **Example Response:**
-  ```json
-  ["@restaurant1", "@restaurant2", "@restaurant3"]
-  ```
-
-#### 3. Get Single Restaurant Details
-- **Endpoint:** `/api/restaurant/<handle>`
-- **Method:** GET
-- **Parameters:** `handle` - Restaurant's Instagram handle (with or without @)
-- **Response:** Detailed metrics for the specified restaurant
-- **Example Response:**
-  ```json
-  {
-    "avg_likes": 500.5,
-    "avg_comments": 25.3,
-    "followers": 10000,
-    "top_hashtags": {
-      "#food": 20,
-      "#restaurant": 15
-    },
-    "total_posts": 50
-  }
-  ```
-
-#### 4. Get Hashtag Analysis
-- **Endpoint:** `/api/hashtags`
-- **Method:** GET
-- **Response:** Object with hashtag frequencies
-- **Example Response:**
-  ```json
-  {
-    "#food": 100,
-    "#restaurant": 75,
-    "#foodie": 50
-  }
-  ```
-
-### Error Responses
-All endpoints return error responses in the following format:
-```json
-{
-  "error": "Error message description"
-}
-```
+2. The application will be available at `http://localhost:5000`
 
 ## Usage Guide
 
@@ -129,10 +50,13 @@ All endpoints return error responses in the following format:
 - Hashtag Analysis: See most used hashtags and their frequency
 - Restaurant Detail Analysis: Select specific restaurants for detailed metrics
 
+### Exporting Data
+1. Click "Export Analytics to CSV" in the sidebar
+2. Download the generated CSV file containing all metrics
+
 ## Project Structure
 
 - `main.py`: Main Streamlit application
-- `api.py`: REST API endpoints
 - `analytics.py`: Analytics calculation logic
 - `data_handler.py`: Data management and database operations
 - `visualization.py`: Data visualization components
